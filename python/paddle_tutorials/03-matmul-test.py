@@ -3,8 +3,6 @@ This code is minor modification on https://github.com/openai/triton/blob/main/py
 please refer it for detailed comments
 """
 
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 import paddle
 
@@ -14,23 +12,14 @@ import triton.language as tl
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_SIZE_M': 32, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 64, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=3, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 64, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=3, num_warps=8),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=5, num_warps=2),
-        # triton.Config({'BLOCK_SIZE_M': 32, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':1}, num_stages=5, num_warps=2),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 64, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=3, num_warps=8),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=4, num_warps=4),
-        # triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=5, num_warps=2),
-        # triton.Config({'BLOCK_SIZE_M': 32, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8, 'SPLIT_K':2}, num_stages=5, num_warps=2),
+        triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 64, 'GROUP_SIZE_M': 8}, num_stages=3, num_warps=8),
+        triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 256, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=4, num_warps=4),
+        triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=4, num_warps=4),
+        triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=4, num_warps=4),
+        triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 128, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=4, num_warps=4),
+        triton.Config({'BLOCK_SIZE_M': 128, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=4, num_warps=4),
+        triton.Config({'BLOCK_SIZE_M': 64, 'BLOCK_SIZE_N': 32, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=5, num_warps=2),
+        triton.Config({'BLOCK_SIZE_M': 32, 'BLOCK_SIZE_N': 64, 'BLOCK_SIZE_K': 32, 'GROUP_SIZE_M': 8}, num_stages=5, num_warps=2),
     ],
     key=['M', 'N', 'K'],
 )
@@ -48,7 +37,7 @@ def matmul_kernel(
     stride_cm, stride_cn,
     # Meta-parameters
     BLOCK_SIZE_M: tl.constexpr, BLOCK_SIZE_N: tl.constexpr, BLOCK_SIZE_K: tl.constexpr,
-    GROUP_SIZE_M: tl.constexpr, SPLIT_K:tl.constexpr,
+    GROUP_SIZE_M: tl.constexpr,
     ACTIVATION: tl.constexpr,
 ):
     """Kernel for computing the matmul C = A x B.
@@ -58,8 +47,7 @@ def matmul_kernel(
     # Map program ids `pid` to the block of C it should compute.
     # This is done in a grouped ordering to promote L2 data reuse.
     # See above `L2 Cache Optimizations` section for details.
-    pid = tl.program_id(0)
-    pid_k = tl.program_id(1)
+    pid = tl.program_id(axis=0)
     num_pid_m = tl.cdiv(M, BLOCK_SIZE_M)
     num_pid_n = tl.cdiv(N, BLOCK_SIZE_N)
     num_pid_in_group = GROUP_SIZE_M * num_pid_n
@@ -78,7 +66,7 @@ def matmul_kernel(
     # See above `Pointer Arithmetics` section for details
     offs_am = (pid_m * BLOCK_SIZE_M + tl.arange(0, BLOCK_SIZE_M)) % M
     offs_bn = (pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)) % N
-    offs_k = pid_k * BLOCK_SIZE_K + tl.arange(0, BLOCK_SIZE_K)
+    offs_k = tl.arange(0, BLOCK_SIZE_K)
     a_ptrs = a_ptr + (offs_am[:, None] * stride_am + offs_k[None, :] * stride_ak)
     b_ptrs = b_ptr + (offs_k[:, None] * stride_bk + offs_bn[None, :] * stride_bn)
 
@@ -88,27 +76,24 @@ def matmul_kernel(
     # of fp32 values for higher accuracy.
     # `accumulator` will be converted back to fp16 after the loop.
     accumulator = tl.zeros((BLOCK_SIZE_M, BLOCK_SIZE_N), dtype=tl.float32)
-    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K * SPLIT_K)):
+    for k in range(0, tl.cdiv(K, BLOCK_SIZE_K)):
         # Load the next block of A and B, generate a mask by checking the K dimension.
         # If it is out of bounds, set it to 0.
-        a = tl.load(a_ptrs, mask=offs_k[None, :] < K - k * BLOCK_SIZE_K * SPLIT_K, other=0.0)
-        b = tl.load(b_ptrs, mask=offs_k[:, None] < K - k * BLOCK_SIZE_K * SPLIT_K, other=0.0)
+        a = tl.load(a_ptrs, mask=offs_k[None, :] < K - k * BLOCK_SIZE_K, other=0.0)
+        b = tl.load(b_ptrs, mask=offs_k[:, None] < K - k * BLOCK_SIZE_K, other=0.0)
         # We accumulate along the K dimension.
-        # accumulator += tl.dot(a, b, out_dtype=tl.float16, allow_tf32=True)
         accumulator += tl.dot(a, b)
         # Advance the ptrs to the next K block.
-        a_ptrs += SPLIT_K * BLOCK_SIZE_K * stride_ak
-        b_ptrs += SPLIT_K * BLOCK_SIZE_K * stride_bk
+        a_ptrs += BLOCK_SIZE_K * stride_ak
+        b_ptrs += BLOCK_SIZE_K * stride_bk
     # You can fuse bias or arbitrary activation functions here
     # while the accumulator is still in FP32!
     c = accumulator.to(tl.float16)
-    
     if bias_ptr is not None:
-        if pid_k == 0:
-            bias_ptrs = bias_ptr + offs_bn[None, :]
-            bias = tl.load(bias_ptrs, mask=offs_bn[None, :] < N, other=0.0)
-            c = c + bias
-    if ACTIVATION == "leaky_relu" and SPLIT_K==1:
+        bias_ptrs = bias_ptr + offs_bn[None, :]
+        bias = tl.load(bias_ptrs, mask=offs_bn[None, :] < N, other=0.0)
+        c = c + bias
+    if ACTIVATION == "leaky_relu":
         accumulator = leaky_relu(accumulator)
     # -----------------------------------------------------------
     # Write back the block of the output matrix C with masks.
@@ -116,10 +101,7 @@ def matmul_kernel(
     offs_cn = pid_n * BLOCK_SIZE_N + tl.arange(0, BLOCK_SIZE_N)
     c_ptrs = c_ptr + stride_cm * offs_cm[:, None] + stride_cn * offs_cn[None, :]
     c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
-    if SPLIT_K==1:
-        tl.store(c_ptrs, c, mask=c_mask)
-    else:
-        tl.atomic_add(c_ptrs, c, mask=c_mask)
+    tl.store(c_ptrs, c, mask=c_mask)
 
 
 # We can fuse `leaky_relu` by providing it as an `ACTIVATION` meta-parameter in `_matmul`.
@@ -156,11 +138,7 @@ def matmul(a, b, bias=None, activation="", istransposed=False):
     # 1D launch kernel where each block gets its own program.
     grid = lambda META: (
         triton.cdiv(M, META['BLOCK_SIZE_M']) * triton.cdiv(N, META['BLOCK_SIZE_N']),
-        META['SPLIT_K'],
     )
-    print(stride_am," ", stride_ak)
-    print(stride_bk," ", stride_bn)
-    print(stride_cm," ", stride_cn)
     matmul_kernel[grid](
         a, b, c, bias,
         M, N, K,
@@ -179,39 +157,41 @@ def matmul(a, b, bias=None, activation="", istransposed=False):
 # ---------
 #
 # We can test our custom matrix multiplication operation against a native torch implementation (i.e., cuBLAS).
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
-
-shape_tensor_1 = paddle.to_tensor([128, 128], dtype=paddle.int32)
-shape_tensor_2 = paddle.to_tensor([128, 128], dtype=paddle.int32)
-shape_tensor_3 = paddle.to_tensor([128], dtype=paddle.int32)
+shape_tensor_1 = paddle.to_tensor([512, 5120], dtype=paddle.int32)
+shape_tensor_2 = paddle.to_tensor([5120, 10240], 
+                                  dtype=paddle.int32)
 a = paddle.randn(shape_tensor_1, dtype=paddle.float16)
 b = paddle.randn(shape_tensor_2, dtype=paddle.float16)
-bias = paddle.randn(shape_tensor_3, dtype=paddle.float16)
 
+import datetime
 # A X B
-triton_output = matmul(a, b)
-paddle_output = paddle.matmul(a, b)
-if paddle.allclose(triton_output, paddle_output, atol=1e-2, rtol=0.0):
-    print("✅ Triton and Paddle match")
-else:
-    print("❌ Triton and Paddle differ")
-    print(paddle.max(paddle.abs(paddle_output - triton_output)))
+warmup_times = 50
+repeat_times = 100
+for _ in range(warmup_times):
+    triton_output_1 = matmul(a, b)
+paddle.device.cuda.synchronize(0)
+start = datetime.datetime.now()
+for _ in range(repeat_times):
+    triton_output_1 = matmul(a, b)
+paddle.device.cuda.synchronize(0)
+end = datetime.datetime.now()
+duringtime = end - start
+estimate_ms = (duringtime.seconds * 1000 + duringtime.microseconds / 1000.0)
+print("Triton time without transpose: ", estimate_ms)
 
-# A X B + bias
-triton_output = matmul(a, b, bias)
-paddle_output = paddle.matmul(a, b) + bias
-if paddle.allclose(triton_output, paddle_output, atol=1e-2, rtol=0.0):
-    print("✅ Triton and Paddle match")
-else:
-    print("❌ Triton and Paddle differ")
-    print(paddle.max(paddle.abs(paddle_output - triton_output)))
-
-# # A X B^T
-# paddle_output = paddle.matmul(a, b)
-# b_T = b.transpose(perm=[1, 0])
-# b_T = b_T.contiguous()
-# triton_output = matmul(a, b_T, istransposed = True)
-# if paddle.allclose(triton_output, paddle_output, atol=1e-2, rtol=0.0):
-#     print("✅ Triton and Paddle match")
-# else:
-#     print("❌ Triton and Paddle differ")
+b_T = b.transpose(perm=[1, 0])
+b_T = b_T.contiguous()
+for _ in range(warmup_times):
+    triton_output_2 = matmul(a, b_T, istransposed = True)
+paddle.device.cuda.synchronize(0)
+start = datetime.datetime.now()
+for _ in range(repeat_times):
+    triton_output_2 = matmul(a, b_T, istransposed = True)
+paddle.device.cuda.synchronize(0)
+end = datetime.datetime.now()
+duringtime = end - start
+estimate_ms = (duringtime.seconds * 1000 + duringtime.microseconds / 1000.0)
+print("Triton time with: ", estimate_ms)
